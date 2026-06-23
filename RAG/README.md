@@ -64,3 +64,7 @@ S3 上の PDF
 | チャンクサイズ | 大きい → 文脈豊富だが検索精度低下、小さい → 精度高いが文脈不足 |
 | オーバーラップ | チャンク間の重複。情報の切れ目での欠損を防ぐ |
 
+## Output Sample 
+
+<img width="885" height="955" alt="image" src="https://github.com/user-attachments/assets/c1e3edf9-c7ef-4b21-8fb4-a2708bbac13e" />
+
