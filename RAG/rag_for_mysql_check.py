@@ -23,7 +23,7 @@ print(f"{'='*60}")
 # Step 1: Retrieve
 print("\n🔍 Knowledge Base を検索中...")
 response = bedrock_agent.retrieve(
-    knowledgeBaseId='UJWVXAAAAA',
+    knowledgeBaseId='UJWVXS17AG',
     retrievalQuery={'text': query}
 )
 
@@ -34,7 +34,8 @@ for i, r in enumerate(response['retrievalResults'], 1):
     score = r['score']
     bar = '█' * int(score * 20) + '░' * (20 - int(score * 20))
     mark = "✅" if score > 0.5 else "  "
-    print(f"  {mark} [{i}] {bar} {score:.3f} | {r['content']['text'][:60].strip()}")
+    snippet = ' '.join(r['content']['text'][:80].split())
+    print(f"  {mark} [{i}] {bar} {score:.3f} | {snippet[:60]}")
 print(f"{'─'*60}")
 print(f"  閾値: 0.5 | ✅ = RAG採用チャンク")
 
@@ -72,4 +73,3 @@ print(f"💡 回答 [{source}]")
 print(f"{'='*60}\n")
 print(answer)
 print(f"\n{'='*60}")
-
