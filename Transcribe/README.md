@@ -86,3 +86,9 @@ python realtime_transcribe_translate.py
 | LANGUAGE_CODE | en-US | 音声入力の言語 |
 | TARGET_LANGUAGE | ja | 翻訳先の言語 |
 | SAMPLE_RATE | 16000 | サンプルレート (Hz) |
+
+
+## Note 
+
+Amazon Transcribe : 音声をテキストに自動的に変換してインサイトを得る
+https://aws.amazon.com/jp/transcribe/
