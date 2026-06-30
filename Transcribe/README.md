@@ -2,6 +2,10 @@
 
 Amazon Transcribe Streaming と Amazon Translate を組み合わせて、マイクからの英語音声をリアルタイムで文字起こしし、同時に日本語へ翻訳するスクリプトです。
 
+
+<img width="1120" height="326" alt="image" src="https://github.com/user-attachments/assets/a4804109-7f36-49d3-8d31-8589f0bb69e4" />
+
+
 ## Requirements
 
 ### Python Modules
