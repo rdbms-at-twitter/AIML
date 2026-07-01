@@ -3,6 +3,10 @@
 画像から水彩画風アイコンを生成する Python スクリプト。  
 Amazon Bedrock の Nova Canvas モデル (`IMAGE_VARIATION`) を使用しています。
 
+<img width="486" height="489" alt="image" src="https://github.com/user-attachments/assets/3c4f1057-38b5-4b67-b991-dcb59a9f9e5f" />
+
+
+
 ## Features
 
 - 入力画像を自動で正方形にクロップ
