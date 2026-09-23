@@ -749,6 +749,4 @@ $
 
   | gensim版（英語） | 日本語対応版 |
   |:---:|:---:|
-|<img width="929" height="740" alt="image" src="https://github.com/user-attachments/assets/533f67cf-eb31-4866-b3c0-eebd453e6d6b" /> | <img width="934" height="746" alt="image" src="https://github.com/user-attachments/assets/b9e59bbd-92bd-4686-861d-3e50de885982" />|
-
-
+  | <img width="450" alt="english" src="https://github.com/user-attachments/assets/533f67cf-eb31-4866-b3c0-eebd453e6d6b" /> | <img width="450" alt="japanese" src="https://github.com/user-attachments/assets/b9e59bbd-92bd-4686-861d-3e50de885982" /> |
