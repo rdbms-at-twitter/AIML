@@ -1,12 +1,13 @@
 # Word2Vec サンプル — ベクトルの動きを把握する
 
 Word2Vec を使って単語ベクトル（word embedding）が学習中にどう「動く」かを体感するためのサンプル集です。
-同じコーパスに対して **2つの実装**を用意しており、仕組みの理解と実用の両面から比較できます。
+**3つの実装**を用意しており、仕組みの理解・実用・日本語対応の観点から比較できます。
 
 | ファイル | 位置づけ | 依存ライブラリ |
 |---|---|---|
 | `word2vec_scratch.py` | numpy スクラッチ版（仕組み理解用） | numpy のみ |
-| `word2vec_gensim.py` | gensim 本格版（実用・比較用） | gensim / scikit-learn / matplotlib |
+| `word2vec_gensim.py` | gensim 本格版（英語・実用） | gensim / scikit-learn / matplotlib |
+| `word2vec_gensim_ja.py` | 日本語対応版（janome 分かち書き） | 上記 + janome |
 
 ---
 
@@ -197,26 +198,89 @@ SENTENCES = [line.split() for line in RAW] * 30
 
 ---
 
-## 5. 2つの違い（まとめ）
+## 5. `word2vec_gensim_ja.py` — 日本語対応版
 
-| 観点 | スクラッチ版 | gensim版 |
-|---|---|---|
-| 目的 | 仕組みの理解 | 実用 |
-| 依存 | numpy のみ | gensim / sklearn / matplotlib |
-| アルゴリズム実装 | 自分で全部書く（見える） | ライブラリが隠蔽 |
-| 学習率 | 固定（0.05） | 線形減衰（0.05→0.001） |
-| ベクトル次元 | 10 | 50 |
-| 速度 | 遅い（Pythonループ） | 速い（C最適化） |
-| モデル保存 | なし | `.model` に保存可 |
-| 動きの見え方 | 更新式そのものを観察 | エポックごとにコールバックで覗く |
+### 目的
+日本語コーパスで Word2Vec を学習する。英語版との**唯一の本質的な違いは「分かち書き」**で、
+それ以降の学習・分析・可視化の流れは英語版と完全に同じ。
 
-### 使い分け
-- **学習の更新式を1行ずつ追いたい / 仕組みを学ぶ** → スクラッチ版
-- **実データで使う / 大きなコーパスを回す / 保存して再利用** → gensim版
+### なぜ分かち書きが必要か
+日本語は英語と違い単語がスペースで区切られていないため、`str.split()` では分割できない。
+
+```python
+"the king is a strong man".split()   # → ['the','king','is','a','strong','man']  OK
+"王様は強い男です".split()             # → ['王様は強い男です']  1単語扱いで学習不能
+```
+
+そこで形態素解析ライブラリ **janome** で分かち書きする（純Python・辞書内蔵でインストールが簡単）。
+
+```python
+from janome.tokenizer import Tokenizer
+t = Tokenizer()
+[tok.surface for tok in t.tokenize("王様は強い男です")]
+# → ['王様', 'は', '強い', '男', 'です']
+```
+
+### 実装の工夫
+| 工夫 | 内容 |
+|---|---|
+| 品詞フィルタ | 名詞・動詞・形容詞・副詞だけ残し、助詞「は」「が」等のノイズを除去 |
+| 基本形へ正規化 | `token.base_form` を使い「吠える/吠えた」等の活用ゆれを吸収 |
+| コーパス複製 ×60 | 日本語は1文あたり語数が少なく学習信号が弱いため、英語版(×30)より多めに複製 |
+| 日本語フォント自動検出 | 可視化時に Meiryo 等を探し、無ければ `wN` ラベル＋対応表を出力 |
+
+### 日本語コーパスと追跡単語
+英語版と同じ3グループ構成（王族/性別/動物）を日本語で用意。
+**追跡単語（WATCH）**: `王様, 女王, 男, 女, 犬, 猫`
+
+### 出力内容
+英語版と同じ（分かち書き結果の表示が加わる）：
+1. 分かち書き結果（最初の3文）
+2. 各エポックのノルム・移動量
+3. 類似語・アナロジー `王様 - 男 + 女 = ?`
+4. 単語ごとの総移動量
+5. `word2vec_gensim_ja_pca.png`（2D可視化）と `word2vec_gensim_ja.model`（学習済みモデル）を保存
+
+### 実行結果（例）
+```
+分かち書き結果: ['王様', '強い', '男']  ...
+  王様  -> 少年(0.99), 王子(0.98), 若い(0.97)
+  犬    -> 吠える(0.97), 大きい(0.96), 動物(0.94)
+  猫    -> 小さい(0.98), 鳴く(0.96), 動物(0.93)
+アナロジー: 王様 - 男 + 女 = ?
+  => 王女 (0.960)
+```
+
+動物グループ（犬・猫→動物）がきれいに分離し、日本語でも「意味がベクトルの位置になる」ことが確認できる。
+
+> **注意**: 日本語トイコーパスは英語版よりクラスタ分離がやや不安定。これはコーパスが小さく
+> 語数も少ないためで、実データでは問題にならない。今回は複製回数を増やして精度を確保している。
 
 ---
 
-## 6. 実行方法
+## 6. 3つの違い（まとめ）
+
+| 観点 | スクラッチ版 | gensim版（英語） | 日本語対応版 |
+|---|---|---|---|
+| 目的 | 仕組みの理解 | 実用 | 日本語での実用 |
+| 対象言語 | 英語 | 英語 | 日本語 |
+| 分かち書き | 不要（split） | 不要（split） | **必要（janome）** |
+| 依存 | numpy のみ | gensim/sklearn/matplotlib | 左記 + janome |
+| アルゴリズム実装 | 自分で全部書く（見える） | ライブラリが隠蔽 | ライブラリが隠蔽 |
+| 学習率 | 固定（0.05） | 線形減衰（0.05→0.001） | 線形減衰（0.05→0.001） |
+| ベクトル次元 | 10 | 50 | 50 |
+| 速度 | 遅い（Pythonループ） | 速い（C最適化） | 速い（C最適化） |
+| モデル保存 | なし | あり（.model） | あり（.model） |
+| 動きの見え方 | 更新式そのものを観察 | コールバックで覗く | コールバックで覗く |
+
+### 使い分け
+- **学習の更新式を1行ずつ追いたい / 仕組みを学ぶ** → スクラッチ版
+- **英語データで実用・大きなコーパス・保存して再利用** → gensim版（英語）
+- **日本語データで使う** → 日本語対応版（分かち書きが入る以外は gensim版と同じ）
+
+---
+
+## 7. 実行方法
 
 このサンプルは **Windows / Linux / macOS すべてで動作**します。スクリプト自体は OS 依存の
 コードを含んでおらず、matplotlib も `matplotlib.use("Agg")` を指定済みなので GUI 環境
@@ -224,8 +288,10 @@ SENTENCES = [line.split() for line in RAW] * 30
 
 ### 必要ライブラリのインストール（共通）
 ```bash
-pip install numpy gensim scikit-learn matplotlib
+pip install numpy gensim scikit-learn matplotlib janome
 ```
+
+（`janome` は日本語対応版でのみ必要）
 
 ### Linux / macOS
 
@@ -233,7 +299,8 @@ pip install numpy gensim scikit-learn matplotlib
 
 ```bash
 python3 word2vec_scratch.py            # スクラッチ版
-python3 word2vec_gensim.py             # gensim版
+python3 word2vec_gensim.py             # gensim版（英語）
+python3 word2vec_gensim_ja.py          # 日本語対応版
 
 python3 word2vec_gensim.py > out.txt 2>&1   # ログ保存も可
 python3 word2vec_gensim.py | tail -40       # パイプも可
@@ -255,13 +322,14 @@ $env:PYTHONIOENCODING="utf-8"
 [Console]::OutputEncoding=[System.Text.Encoding]::UTF8
 cd C:\Users\shinyajp\kiroAgents
 
-python -u word2vec_gensim.py      # gensim版
+python -u word2vec_gensim.py      # gensim版（英語）
+python -u word2vec_gensim_ja.py   # 日本語対応版
 python word2vec_scratch.py        # スクラッチ版
 ```
 
 ---
 
-## 7. 実験のヒント
+## 8. 実験のヒント
 
 パラメータを書き換えてベクトルの動きの変化を観察してみてください。
 
@@ -271,14 +339,77 @@ python word2vec_scratch.py        # スクラッチ版
 - `vector_size`（次元数）を変える → 表現力とノイズのトレードオフ
 - コーパスに文を追加する → 新しい意味クラスタが形成される様子を確認
 
+日本語版（`word2vec_gensim_ja.py`）固有:
+- `KEEP_POS`（残す品詞）を変える → 助詞まで含めると学習信号がどう変わるか
+- `use_pos_filter=False` にする → 品詞フィルタなしとの違いを比較
+- `base_form`（基本形）→ `surface`（表層形）に変える → 活用のゆれの影響を確認
+- コーパス複製回数（`* 60`）を変える → 日本語での学習量と精度の関係
+
 ---
 
-## 8. 生成ファイル一覧
+## 9. 生成ファイル一覧
 
-| ファイル | 内容 |
-|---|---|
-| `word2vec_scratch.py` | numpy スクラッチ版スクリプト |
-| `word2vec_gensim.py` | gensim 本格版スクリプト |
-| `word2vec_gensim.model` | 学習済み gensim モデル（実行後生成） |
-| `word2vec_gensim_pca.png` | gensim版の埋め込み2D可視化（実行後生成） |
-| `word2vec_trajectory.png` | スクラッチ版の学習軌跡（matplotlib があれば生成） |
+スクリプトを実行すると、以下のファイルが自動生成されます（`.py` 以外は実行結果の成果物）。
+
+| ファイル | 内容 | いつ生成される |
+|---|---|---|
+| `word2vec_scratch.py` | numpy スクラッチ版スクリプト | （最初から存在） |
+| `word2vec_gensim.py` | gensim 本格版スクリプト（英語） | （最初から存在） |
+| `word2vec_gensim_ja.py` | 日本語対応版スクリプト | （最初から存在） |
+| `word2vec_gensim.model` | 学習済み gensim モデル（英語・単語ベクトル一式） | `word2vec_gensim.py` 実行後 |
+| `word2vec_gensim_ja.model` | 学習済み gensim モデル（日本語） | `word2vec_gensim_ja.py` 実行後 |
+| `word2vec_gensim_pca.png` | gensim版（英語）の埋め込み2D可視化 | `word2vec_gensim.py` 実行後 |
+| `word2vec_gensim_ja_pca.png` | 日本語版の埋め込み2D可視化 | `word2vec_gensim_ja.py` 実行後 |
+| `word2vec_trajectory.png` | スクラッチ版の学習軌跡 | `word2vec_scratch.py` 実行後（matplotlib があれば） |
+
+> `.model` / `.png` はリポジトリに含めなくても、スクリプトを実行すれば毎回再生成されます。
+
+---
+
+## 10. 学習済みモデル（`word2vec_gensim.model`）の再利用
+
+`word2vec_gensim.py` の末尾で `model.save("word2vec_gensim.model")` を実行しており、
+**学習結果（全単語のベクトル・語彙辞書・学習設定・内部重み）を1ファイルに保存**しています。
+
+### なぜ保存するのか
+毎回スクリプトを実行すると学習が最初から走ります。実データで大きなコーパスを扱うと学習に
+時間がかかるため、一度学習したら保存して**再学習せずに使い回す**のが実務の定石です。
+これはスクラッチ版にはない、gensim の実用機能を示すためのものです。
+
+### 中身
+- 全24単語それぞれの 50 次元ベクトル（学習の成果物）
+- 語彙辞書（単語 ↔ ID の対応）
+- 学習設定（`vector_size`, `window`, `sg` など）
+- 追加学習に必要な内部重み（`W_in` / `W_out` 相当）
+
+バイナリ形式のため、テキストエディタでは読めません（サイズは約18KB）。
+
+### 使い方 — 学習せずにロードして即利用
+```python
+from gensim.models import Word2Vec
+
+# 学習は走らず、保存済みの状態を即座に復元
+model = Word2Vec.load("word2vec_gensim.model")
+
+print(model.wv["king"])                 # king の 50 次元ベクトル
+print(model.wv.most_similar("dog"))     # 類似語
+print(model.wv.most_similar(            # アナロジー king - man + woman
+    positive=["king", "woman"], negative=["man"]))
+```
+
+### 追加学習（続きから学習を再開）
+```python
+model = Word2Vec.load("word2vec_gensim.model")
+model.build_vocab(new_sentences, update=True)   # 新しい語彙を追加
+model.train(new_sentences,
+            total_examples=len(new_sentences),
+            epochs=model.epochs)
+```
+
+### ベクトルだけ軽量に保存したい場合
+追加学習が不要でベクトル操作だけできれば十分なら、KeyedVectors だけを保存する方が軽量です。
+```python
+model.wv.save("word2vec_gensim.kv")             # 保存
+from gensim.models import KeyedVectors
+kv = KeyedVectors.load("word2vec_gensim.kv")    # ロード
+```
