@@ -213,6 +213,7 @@ SENTENCES = [line.split() for line in RAW] * 30
 ```
 
 そこで形態素解析ライブラリ **janome** で分かち書きする（純Python・辞書内蔵でインストールが簡単）。
+詳細 : [janome](https://github.com/mocobeta/janome)
 
 ```python
 from janome.tokenizer import Tokenizer
