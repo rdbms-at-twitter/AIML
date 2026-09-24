@@ -751,3 +751,63 @@ $
   | gensim版（英語） | 日本語対応版 |
   |:---:|:---:|
   | <img width="450" alt="english" src="https://github.com/user-attachments/assets/533f67cf-eb31-4866-b3c0-eebd453e6d6b" /> | <img width="450" alt="japanese" src="https://github.com/user-attachments/assets/b9e59bbd-92bd-4686-861d-3e50de885982" /> |
+
+
+## 発展: BERT で「文脈依存ベクトル」を体験する
+
+Word2Vec の最大の弱点は **「1単語＝1ベクトルで固定」**（静的埋め込み）だった。
+`bank` は川岸でも銀行でも常に同じベクトルで、意味を区別できない。
+
+これを解決したのが **BERT**（2018年、Google）。**同じ単語でも文脈でベクトルが変わる**
+（文脈依存埋め込み）。それを体感するサンプルを2つ用意した。
+
+| ファイル | 題材 | 依存ライブラリ |
+|---|---|---|
+| `bert_context_demo.py` | 英語の多義語 `bank`（川岸/銀行） | transformers, torch |
+| `bert_context_demo_ja.py` | 日本語の多義語「アップル」（果物/企業） | 上記 + fugashi, unidic-lite |
+
+### 何を確かめるか
+同じ単語を「意味が違う文」に入れ、その単語のBERTベクトル同士のコサイン類似度を比較する。
+- **同じ意味の文どうし** → 類似度が高い
+- **違う意味の文どうし** → 類似度が低い
+
+Word2Vec なら同じ単語は必ず同一ベクトル（類似度は常に 1.0）になるはずのところ、
+BERT は文脈で変わるので差がつく。これが両者の決定的な違い。
+
+### セットアップ（EC2 / Linux）
+```bash
+# CPU版torchで十分（推論のみ）。動いた実績のある python に合わせて -m pip を使う
+python -m pip install transformers torch --index-url https://download.pytorch.org/whl/cpu
+
+# 日本語版のみ追加で必要
+python -m pip install fugashi unidic-lite
+```
+> 初回はモデル（英語約440MB / 日本語約450MB）を自動ダウンロード。2回目以降はキャッシュから起動。
+> torch+transformers+モデルで合計2〜3GB程度のディスクを使う（`df -h` で確認）。
+
+### 実行
+```bash
+python bert_context_demo.py       # 英語版
+python bert_context_demo_ja.py    # 日本語版
+```
+
+### 実行結果（英語版・実測）
+```
+                     0(川岸)   1(川岸)   2(銀行)   3(銀行)
+川岸-0              1.000     0.763     0.522     0.478
+川岸-1              0.763     1.000     0.505     0.457
+銀行-2              0.522     0.505     1.000     0.831
+銀行-3              0.478     0.457     0.831     1.000
+
+  同じ意味 (川岸 vs 川岸)   : 0.763
+  同じ意味 (銀行 vs 銀行)   : 0.831
+  違う意味 (川岸 vs 銀行) 平均: 0.490
+```
+
+### 表の読み方
+- **対角線（1.000）**: 自分自身との比較。無視してよい。
+- **同じ意味どうし（0.76, 0.83）= 高い**: BERT が「似た意味」と判断した証拠。
+- **違う意味どうし（0.45〜0.52）= 低い**: BERT が「違う意味」と判断した証拠。
+
+→ 同じ綴りの `bank` でも、周囲が river か money かで **BERT が別の意味だと区別できている**。
+Word2Vec なら全ペア 1.0（区別不可）になるところ。これが「文脈依存埋め込み」。
